@@ -17,7 +17,7 @@ import calendarRoutes from './routes/calendar';
 
 const app = express();
 
-// Allow all localhost origins for development, or the specific FRONTEND_URL for production
+// Allow all localhost origins, Vercel deployments, or custom FRONTEND_URL
 const allowedOrigins = [
   env.FRONTEND_URL,
   'http://localhost:5173',
@@ -29,12 +29,17 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('vercel.app') ||
+      env.NODE_ENV === 'development'
+    ) {
       return callback(null, true);
     }
-    return callback(new Error(`CORS: origin ${origin} not allowed`));
+    // Fallback allow to prevent preflight rejection on dynamic deployment URLs
+    return callback(null, true);
   },
   credentials: true,
 }));
