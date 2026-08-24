@@ -17,29 +17,11 @@ import calendarRoutes from './routes/calendar';
 
 const app = express();
 
-// Allow all localhost origins, Vercel deployments, or custom FRONTEND_URL
-const allowedOrigins = [
-  env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174',
-];
-
+// Bulletproof CORS handler: Echoes request origin for credentials compatibility
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (
-      allowedOrigins.includes(origin) ||
-      origin.endsWith('.vercel.app') ||
-      origin.includes('vercel.app') ||
-      env.NODE_ENV === 'development'
-    ) {
-      return callback(null, true);
-    }
-    // Fallback allow to prevent preflight rejection on dynamic deployment URLs
-    return callback(null, true);
+    return callback(null, origin);
   },
   credentials: true,
 }));
