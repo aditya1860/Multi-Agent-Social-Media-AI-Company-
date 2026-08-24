@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from './api';
+import { api, BASE_URL } from './api';
 
 interface User {
   id: string;
@@ -24,6 +24,27 @@ interface RegisterData {
   phone?: string;
 }
 
+const DEMO_USERS: Record<string, User> = {
+  'patient@vitalis.app': {
+    id: 'demo-patient-id',
+    name: 'Alex Johnson',
+    email: 'patient@vitalis.app',
+    role: 'PATIENT',
+  },
+  'dr.smith@vitalis.app': {
+    id: 'demo-doctor-id',
+    name: 'Dr. Emily Smith',
+    email: 'dr.smith@vitalis.app',
+    role: 'DOCTOR',
+  },
+  'admin@vitalis.app': {
+    id: 'demo-admin-id',
+    name: 'Clinic Admin',
+    email: 'admin@vitalis.app',
+    role: 'ADMIN',
+  },
+};
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -31,6 +52,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const savedUser = localStorage.getItem('demoUser');
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+        setLoading(false);
+        return;
+      } catch {}
+    }
+
     const token = localStorage.getItem('accessToken');
     if (token) {
       api.get('/auth/me')
@@ -49,13 +79,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await api.post('/auth/login', { email, password });
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.removeItem('demoUser');
       setUser(data.user);
     } catch (err: any) {
-      // Network error (API server not running)
-      if (!err.response) {
-        throw new Error('Cannot connect to server. Make sure the API is running on port 5000.');
+      // Check if this is a demo account and backend is offline/sleeping
+      const lowerEmail = email.toLowerCase().trim();
+      if ((!err.response || err.code === 'ERR_NETWORK') && DEMO_USERS[lowerEmail]) {
+        console.warn(`[Auth] Backend at ${BASE_URL} unreachable. Logging in with Demo Mode for ${lowerEmail}.`);
+        const demoUser = DEMO_USERS[lowerEmail];
+        localStorage.setItem('accessToken', 'demo-access-token');
+        localStorage.setItem('refreshToken', 'demo-refresh-token');
+        localStorage.setItem('demoUser', JSON.stringify(demoUser));
+        setUser(demoUser);
+        return;
       }
-      // Server returned an error (wrong credentials, etc.)
+
+      if (!err.response) {
+        throw new Error(`Cannot connect to backend API at "${BASE_URL}". Please check VITE_API_URL in Vercel.`);
+      }
       throw err;
     }
   };
@@ -65,11 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await api.post('/auth/register', formData);
       localStorage.setItem('accessToken', data.accessToken);
       localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.removeItem('demoUser');
       setUser(data.user);
     } catch (err: any) {
-      // Network error (API server not running)
       if (!err.response) {
-        throw new Error('Cannot connect to server. Make sure the API is running on port 5000.');
+        throw new Error(`Cannot connect to backend API at "${BASE_URL}". Please check VITE_API_URL in Vercel.`);
       }
       throw err;
     }
