@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  # PostgreSQL — required for row-level locking (double-booking prevention)
+  postgres:
+    image: postgres:15-alpine
+    container_name: healthcare_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: healthcare_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - healthcare_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  healthcare_pgdata:
+    driver: local
+
+# Usage:
+#   docker-compose up -d postgres
+#   Then: cd apps/api && npx prisma migrate dev && npm run db:seed

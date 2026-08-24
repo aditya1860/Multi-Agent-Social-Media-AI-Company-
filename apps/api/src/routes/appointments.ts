@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { holdSlot, confirmAppointment, cancelAppointment, rescheduleAppointment, getMyAppointments, getAppointmentById } from '../controllers/appointments';
+import { requireAuth } from '../middleware/auth';
+import { requireRole } from '../middleware/roles';
+const router = Router();
+router.get('/my', requireAuth, getMyAppointments);
+router.get('/:appointmentId', requireAuth, getAppointmentById);
+router.post('/hold', requireAuth, requireRole('PATIENT'), holdSlot);
+router.post('/:appointmentId/confirm', requireAuth, requireRole('PATIENT'), confirmAppointment);
+router.post('/:appointmentId/cancel', requireAuth, cancelAppointment);
+router.post('/:appointmentId/reschedule', requireAuth, rescheduleAppointment);
+export default router;

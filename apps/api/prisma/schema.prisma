@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  HELD
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  RESCHEDULED
+}
+
+enum NotificationChannel {
+  EMAIL
+  CALENDAR
+}
+
+enum NotificationType {
+  CONFIRMATION
+  REMINDER
+  CANCELLATION
+  RESCHEDULE
+  MEDICATION_REMINDER
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  ABANDONED
+}
+
+enum LLMStatus {
+  SUCCESS
+  FAILED
+  FALLBACK
+  PENDING
+}
+
+model User {
+  id           String   @id @default(cuid())
+  role         Role
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  phone        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  doctorProfile       DoctorProfile?
+  patientAppointments Appointment[]   @relation("PatientAppointments")
+  doctorAppointments  Appointment[]   @relation("DoctorAppointments")
+  calendarEventLinks  CalendarEventLink[]
+  googleOAuth         GoogleOAuthToken?
+
+  @@map("users")
+}
+
+model GoogleOAuthToken {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken  String   @map("access_token")
+  refreshToken String   @map("refresh_token")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("google_oauth_tokens")
+}
+
+model DoctorProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique @map("user_id")
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialization       String
+  bio                  String?
+  consultationDuration Int      @default(30) @map("consultation_duration")
+  slotDurationMinutes  Int      @default(30) @map("slot_duration_minutes")
+  // workingHours: {"monday":{"start":"09:00","end":"17:00"}, ...} null means day off
+  workingHours         Json     @map("working_hours")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  leaves DoctorLeave[]
+
+  @@map("doctor_profiles")
+}
+
+model DoctorLeave {
+  id         String        @id @default(cuid())
+  doctorId   String        @map("doctor_id")
+  doctor     DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date       DateTime      @db.Date
+  reason     String?
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  @@unique([doctorId, date])
+  @@map("doctor_leaves")
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  patientId      String            @map("patient_id")
+  patient        User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctorId       String            @map("doctor_id")
+  doctor         User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  slotStart      DateTime          @map("slot_start")
+  slotEnd        DateTime          @map("slot_end")
+  status         AppointmentStatus @default(HELD)
+  // holdExpiresAt is set when status=HELD; null when CONFIRMED/CANCELLED etc.
+  holdExpiresAt  DateTime?         @map("hold_expires_at")
+  reason         String?           // patient-provided reason for visit
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  symptomForm        SymptomForm?
+  preVisitSummary    PreVisitSummary?
+  postVisitNote      PostVisitNote?
+  postVisitSummary   PostVisitSummary?
+  notificationLogs   NotificationLog[]
+  calendarEventLinks CalendarEventLink[]
+
+  // CRITICAL: DB-level unique constraint prevents double-booking at the storage layer
+  // even if two concurrent requests bypass application-level checks.
+  // Combined with a serializable transaction in the hold endpoint, this is the
+  // iron-clad guarantee against double-booking.
+  @@unique([doctorId, slotStart])
+  @@map("appointments")
+}
+
+model SymptomForm {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique @map("appointment_id")
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  rawSymptoms   String   @map("raw_symptoms")
+  submittedAt   DateTime @default(now()) @map("submitted_at")
+
+  @@map("symptom_forms")
+}
+
+model PreVisitSummary {
+  id                String    @id @default(cuid())
+  appointmentId     String    @unique @map("appointment_id")
+  appointment       Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  urgencyLevel      String?   @map("urgency_level") // Low | Medium | High
+  chiefComplaint    String?   @map("chief_complaint")
+  suggestedQuestions Json?   @map("suggested_questions") // string[]
+  rawLLMResponse    String?   @map("raw_llm_response")
+  llmStatus         LLMStatus @default(PENDING) @map("llm_status")
+  generatedAt       DateTime? @map("generated_at")
+
+  @@map("pre_visit_summaries")
+}
+
+model PostVisitNote {
+  id               String   @id @default(cuid())
+  appointmentId    String   @unique @map("appointment_id")
+  appointment      Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  doctorNotesRaw   String   @map("doctor_notes_raw")
+  // prescriptionJSON: [{drug, dosage, frequency, durationDays}]
+  prescriptionJSON Json     @map("prescription_json")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("post_visit_notes")
+}
+
+model PostVisitSummary {
+  id                    String    @id @default(cuid())
+  appointmentId         String    @unique @map("appointment_id")
+  appointment           Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  patientFriendlySummary String?  @map("patient_friendly_summary")
+  // medicationScheduleJSON: [{drug, dosage, timesPerDay, durationDays}]
+  medicationScheduleJSON Json?   @map("medication_schedule_json")
+  followUpSteps         Json?     @map("follow_up_steps") // string[]
+  rawLLMResponse        String?   @map("raw_llm_response")
+  llmStatus             LLMStatus @default(PENDING) @map("llm_status")
+  generatedAt           DateTime? @map("generated_at")
+
+  @@map("post_visit_summaries")
+}
+
+model NotificationLog {
+  id             String             @id @default(cuid())
+  appointmentId  String             @map("appointment_id")
+  appointment    Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  channel        NotificationChannel
+  type           NotificationType
+  status         NotificationStatus @default(PENDING)
+  attempts       Int                @default(0)
+  lastAttemptAt  DateTime?          @map("last_attempt_at")
+  errorMessage   String?            @map("error_message")
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  @@map("notification_logs")
+}
+
+model CalendarEventLink {
+  id            String   @id @default(cuid())
+  appointmentId String   @map("appointment_id")
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleEventId String   @map("google_event_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([appointmentId, userId])
+  @@map("calendar_event_links")
+}

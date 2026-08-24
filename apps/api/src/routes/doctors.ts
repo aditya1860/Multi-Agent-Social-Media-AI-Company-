@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import { getDoctors, getDoctorById, getDoctorSlots, createDoctorProfile, updateDoctorProfile, getDoctorLeaves } from '../controllers/doctors';
+import { requireAuth } from '../middleware/auth';
+import { requireRole } from '../middleware/roles';
+const router = Router();
+router.get('/', getDoctors);
+router.get('/:id', getDoctorById);
+router.get('/:id/slots', getDoctorSlots);
+router.get('/:id/leaves', requireAuth, getDoctorLeaves);
+router.post('/', requireAuth, requireRole('ADMIN'), createDoctorProfile);
+router.put('/:id', requireAuth, requireRole('ADMIN', 'DOCTOR'), updateDoctorProfile);
+export default router;
