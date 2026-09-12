@@ -67,3 +67,48 @@ def test_end_to_end_campaign_optimization():
         traces = bus.get_traces(limit=100)
         assert len(traces) >= 20
         assert os.path.exists(jsonl_trace_path)
+
+
+def test_human_rejection_aborts_campaign_cleanly(monkeypatch):
+    """
+    Validates that when the human operator rejects the campaign at the approval gate,
+    the pipeline aborts cleanly, does not publish or execute Week 2, and returns an ABORTED status.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_platform_path = os.path.join(tmpdir, "platform.db")
+        db_trace_path = os.path.join(tmpdir, "trace.db")
+        jsonl_trace_path = os.path.join(tmpdir, "trace.jsonl")
+        db_memory_path = os.path.join(tmpdir, "memory.db")
+
+        llm_client = LLMClient(offline_mode=True)
+        bus = MessageBus(db_path=db_trace_path, jsonl_path=jsonl_trace_path, verbose=False)
+        memory = MemoryStore(db_path=db_memory_path)
+        platform_db = PlatformDatabase(db_path=db_platform_path)
+
+        orchestrator = CampaignOrchestrator(
+            llm_client=llm_client,
+            bus=bus,
+            memory_store=memory,
+            db=platform_db,
+        )
+
+        # Mock human gate returning False (rejection)
+        monkeypatch.setattr(
+            orchestrator.chief_of_staff,
+            "request_human_approval",
+            lambda *args, **kwargs: False,
+        )
+
+        test_brief = "Test brief for human rejection scenario."
+        result = orchestrator.run_campaign(
+            raw_brief=test_brief,
+            campaign_id="test_camp_rejected",
+            auto_approve=False,
+        )
+
+        assert result.get("status") == "ABORTED_BY_USER"
+        assert "week_2" not in result
+        # Check platform db has 0 published posts
+        posts = platform_db.get_posts_by_campaign("test_camp_rejected")
+        assert len(posts) == 0
+

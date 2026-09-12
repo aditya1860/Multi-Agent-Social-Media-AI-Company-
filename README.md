@@ -77,7 +77,7 @@ pip install -r requirements.txt
 ollama pull qwen2.5:7b-instruct
 ollama serve
 
-# 4. Run automated unit & integration test suite (23 passing tests)
+# 4. Run automated unit & integration test suite (27 passing tests)
 python -m pytest tests/ -v
 ```
 
@@ -165,10 +165,15 @@ python cli.py start-platform --port 8000
 - **Relational SQLite vs. Vector RAG:**
   - Weekly campaign memory consists of structured causal hypotheses, channel-specific timing slots, and numerical KPI summaries indexed cleanly by `(campaign_id, week_number)`.
   - Storing structured JSON records in SQLite (`data/memory.db`) provides 100% exact deterministic recall, zero embedding latency, zero vector DB memory overhead, and eliminates hallucinated semantic similarity errors.
-- **Proof of Adaptation (Week 1 -> Week 2):**
-  - Week 1 baseline posts on `short_form` were scheduled at 10:00 AM with 8 hashtags and suffered penalties.
-  - Analytics identified that evening windows yielded +45% engagement and 8+ hashtags triggered spam suppression.
-  - Week 2 autonomously adapted: shifted short-form to the 19:30 evening window, capped hashtags at 4, and adopted question CTAs, boosting average engagement rate from **8.66% to 11.13% (+28.5%)**.
+- **Proof of Adaptation (Week 1 -> Week 2 across 5 Independent Trials):**
+  - Week 1 baseline posts on `short_form` were scheduled in the morning with 8 hashtags and suffered penalties; professional posts featured sales-urgency hooks.
+  - Analytics identified evening windows yielded +42% to +50% reach, question CTAs boosted comments 2.1x, and 8+ hashtags triggered spam suppression.
+  - Week 2 autonomously adapted: shifted short-form to the 19:30 evening peak, capped hashtags at 4, and adopted question CTAs.
+  - **Empirical Multi-Trial Results (Mean ± Std Dev across 5 runs, tracked in `docs/run_artifacts/`):**
+    - **Total Impressions:** 8,210.6 ± 96.5 -> **13,097.2 ± 292.3** (**+59.54% ± 4.87%**)
+    - **Avg Engagement Rate:** 9.86% ± 0.35% -> **13.79% ± 0.24%** (**+39.9% ± 3.13%**, improved in 5/5 trials)
+    - **Positive Comment Ratio:** 50.4% ± 1.2% -> **66.6% ± 1.1%** (**+16.2 ± 1.1% pts**)
+    - **Safety Escalations:** **10/10 Intercepted (100% success)** via deterministic keyword gate.
 
 ---
 
@@ -188,29 +193,34 @@ Audience engagement is governed by **8 deliberate, non-linear hidden rules** doc
 
 ---
 
-## 7. What Was Cut and Why (4-Day Scope Trade-Offs)
+## 7. Known Limitations & Failure Modes Encountered
 
-To maintain defensibility, architectural clarity, and rock-solid reliability within a 4-day sprint, we explicitly cut:
-
-1. **Local Image Rendering via Stable Diffusion / Diffusers:**
-   - *Rationale:* Loading a local image generation pipeline (e.g. SD-Turbo) requires an additional 3–4 GB VRAM, which would cause immediate GPU OOM when co-located with a 7B LLM on an 8GB card. We prioritized text-only creative briefs specifying precise visual composition, lighting, and aspect ratios.
-2. **Heavy Agent Frameworks (LangGraph, CrewAI, AutoGen):**
-   - *Rationale:* Pre-built frameworks introduce heavy abstraction layers, hidden prompt wrappers, and black-box state machines. Building a clean, lightweight custom message bus and base agent architecture ensures every single line of code is 100% explainable and defensible in a technical interview.
-3. **Vector Database / Embedding Models:**
-   - *Rationale:* At the scale of multi-week campaign summaries (a few dozen posts per campaign), episodic memory is purely structured relational data. Vector cosine-similarity retrieval introduces fuzzy recall errors and consumes extra VRAM. Relational SQLite provides zero-latency deterministic recall.
-4. **Live Browser Web Frontend:**
-   - *Rationale:* Building a React/Next.js dashboard adds front-end boilerplate without improving agent reasoning. We delivered a complete REST API in FastAPI, paired with rich, interactive CLI tree inspection commands (`view-feed`, `view-trace`) for terminal observability.
+Defensible engineering requires honest documentation of constraints:
+1. **Sample Size & Ground-Truth Detection ($N=14$):** At 14 posts across 2 weeks, 4 of 8 rules were fully detected with high confidence (timing, question CTAs, CTA conflict, comment risk); 2 were partially detected (hashtag sweet spot vs spam); 1 was undetectable due to schedule format rotation (novelty decay); and 1 (hype buzzwords) was never triggered on-platform because the Compliance agent blocked 100% of hype copy upstream.
+2. **Upstream Agent Bias:** Content writers naturally generate detailed professional copy and 3-4 hashtags under brand prompts, so extreme penalties (0 hashtags, ultra-short B2B copy) are not observable in live logs.
+3. **Hardware & Concurrency:** The synchronous bus serializes calls to prevent 8GB VRAM thrashing. On CPU-only environments without CUDA, inference latency scales to ~11s per call (~4-5 mins per full demo).
+4. **Visual Multimodal QA:** The Creative Agent emits detailed text composition briefs, but without an image model (e.g. Stable Diffusion), there is no visual asset generation or visual inspection.
 
 ---
 
-## 8. Deliverables & Documentation
+## 8. What Was Cut and Why (4-Day Scope Trade-Offs)
+
+To maintain defensibility, architectural clarity, and rock-solid reliability within a 4-day sprint, we explicitly cut:
+1. **Local Image Rendering via Stable Diffusion / Diffusers:** Loading SD-Turbo requires 3–4 GB extra VRAM, which would cause GPU OOM when co-located with a 7B LLM on an 8GB card.
+2. **Heavy Agent Frameworks (LangGraph, CrewAI, AutoGen):** Custom synchronous bus ensures 100% explainability and zero black-box dependencies.
+3. **Vector Database / Embedding Models:** Multi-week campaign summaries are structured relational records. Relational SQLite provides zero-latency deterministic recall without cosine hallucinations.
+4. **Live Browser Web Frontend:** Focused on robust FastAPI REST endpoints and rich terminal tree inspection (`view-feed`, `view-trace`).
+
+---
+
+## 9. Deliverables & Verification
 
 - **Full Working Codebase:** In `agents/`, `mock_platform/`, `bus/`, `memory/`, `tests/`.
-- **Requirements File:** `requirements.txt`.
+- **Run Artifacts & Empirical Data:** `docs/run_artifacts/` (`run_1.json` - `run_5.json`, `summary_metrics.json`).
 - **Technical Write-Up (PDF & Markdown):**
   - Markdown: [`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md)
   - PDF: [`docs/TECHNICAL_REPORT.pdf`](docs/TECHNICAL_REPORT.pdf)
   - Generated Architecture Diagram: [`docs/architecture_diagram.png`](docs/architecture_diagram.png)
   - PDF Generator: `python docs/generate_pdf.py`
 - **Unit & Integration Test Suite:**
-  - Run: `python -m pytest tests/ -v` (23 tests covering retry loops, regex fallback, compliance gates, engagement rules, and memory loops).
+  - Run: `python -m pytest tests/ -v` (**27 tests, 100% passing** covering retry loops, regex fallback, compliance gates, risk keywords, and memory loops).

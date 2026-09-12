@@ -1,0 +1,86 @@
+{
+  "num_trials": 5,
+  "seeds_tested": [
+    42,
+    101,
+    777,
+    2024,
+    9999
+  ],
+  "metrics": {
+    "week_1_impressions": {
+      "mean": 8210.6,
+      "std": 96.5,
+      "min": 8059,
+      "max": 8316
+    },
+    "week_2_impressions": {
+      "mean": 13097.2,
+      "std": 292.3,
+      "min": 12719,
+      "max": 13460
+    },
+    "impressions_delta_pct": {
+      "mean": 59.54,
+      "std": 4.87
+    },
+    "week_1_engagement_rate_pct": {
+      "mean": 9.86,
+      "std": 0.35
+    },
+    "week_2_engagement_rate_pct": {
+      "mean": 13.79,
+      "std": 0.24
+    },
+    "engagement_rate_delta_pct": {
+      "mean": 39.9,
+      "std": 3.13,
+      "improved_in_n_runs": 5
+    },
+    "positive_sentiment_delta_pts": {
+      "mean": 16.2,
+      "std": 1.1
+    },
+    "safety_escalations_intercepted": {
+      "week_1_total": 5,
+      "week_2_total": 5,
+      "interception_success_rate": 1.0
+    }
+  },
+  "ground_truth_rules_visibility_audit": {
+    "total_campaign_posts": 14,
+    "rule_1_timing_window": {
+      "status": "DETECTABLE",
+      "statistical_basis": "Short-form evening (17-21h) vs morning (7-11h) shows +42% to +50% reach difference with N=6 posts. Professional morning (8-11h) shows +35% over evening with N=4 posts."
+    },
+    "rule_2_question_cta_boost": {
+      "status": "DETECTABLE",
+      "statistical_basis": "Question-ending CTAs generated 2.1x comments on community_forum (avg 52 vs 24 comments per post across N=4 forum posts)."
+    },
+    "rule_3_inverted_u_hashtag_curve": {
+      "status": "PARTIALLY_DETECTABLE",
+      "statistical_basis": "The 3-5 tags sweet spot vs >=8 spam penalty is clearly observable (+45% reach delta). However, the 0-tags penalty and 6-7 tags inflection point are UNDETECTABLE in production because ContentWriter never drafts 0 or 7 hashtags under brand guidance (N=0 sample size for those bins)."
+    },
+    "rule_4_copy_length_resonance": {
+      "status": "PARTIALLY_DETECTABLE",
+      "statistical_basis": "Short copy (<150 chars) on short_form consistently out-engaged medium/long copy. However, on professional networks, the shallow copy penalty (<180 chars) was not observed because the Writer always generated in-depth copy >350 chars."
+    },
+    "rule_5_novelty_decay": {
+      "status": "UNDETECTABLE_AT_SMALL_N",
+      "statistical_basis": "Because the 7-day schedule alternates content pillars across days, consecutive format repeats on the same channel occurred only once across the entire campaign, leaving insufficient degrees of freedom to isolate fatigue penalty from noise."
+    },
+    "rule_6_cta_channel_conflict": {
+      "status": "DETECTABLE",
+      "statistical_basis": "Week 1 Day 3 urgency CTA on professional resulted in lowest B2B engagement rate (7.69%) and 42% negative comment ratio, compared to Week 2 value CTA (11.10% rate)."
+    },
+    "rule_7_hype_buzzwords_penalty": {
+      "status": "NOT_TRIGGERED_IN_PRODUCTION",
+      "statistical_basis": "The Brand & Compliance dual-layer safety gate rejected 100% of copy containing banned hype buzzwords ('guaranteed', 'miracle') during pre-publication screening. Consequently, zero hype posts reached the mock platform feed."
+    },
+    "rule_8_comment_risk_escalation": {
+      "status": "100%_VERIFIED",
+      "statistical_basis": "Injected risk keywords ('scam', 'refund') were intercepted by the deterministic keyword gate in all 5 trials without exception (5/5 intercepted, 0 automated responses emitted)."
+    },
+    "verdict_summary": "4 of 8 rules detectable with statistical confidence; 2 partially detectable due to content writer bias; 1 undetectable due to small N schedule diversification; 1 intentionally never triggered due to upstream compliance rejection."
+  }
+}

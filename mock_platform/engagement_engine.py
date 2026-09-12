@@ -134,16 +134,22 @@ class EngagementEngine:
 
         # --- RULE 3: Inverted-U Hashtag Curve ---
         hashtag_factor = 1.0
+        hashtag_eng_factor = 1.0
         if hashtag_count == 0:
             hashtag_factor = 0.65
+            hashtag_eng_factor = 0.85
         elif 1 <= hashtag_count <= 2:
             hashtag_factor = 0.85
+            hashtag_eng_factor = 0.95
         elif 3 <= hashtag_count <= 5:
             hashtag_factor = 1.30  # Optimal sweet spot
+            hashtag_eng_factor = 1.25
         elif 6 <= hashtag_count <= 7:
             hashtag_factor = 0.90
+            hashtag_eng_factor = 0.90
         else:  # >= 8 hashtags
             hashtag_factor = 0.55  # Spam suppression penalty
+            hashtag_eng_factor = 0.60
 
         # --- RULE 4: Per-Channel Copy-Length Resonance ---
         length_factor = 1.0
@@ -209,12 +215,16 @@ class EngagementEngine:
             sentiment_bias -= 0.50
             hashtag_factor *= 0.80  # Trust penalty
 
-        # --- COMPUTE COMPOSITE METRICS ---
-        final_impressions = int(base_impressions * timing_factor * hashtag_factor)
+        # --- COMPUTE COMPOSITE METRICS (with realistic organic audience noise) ---
+        # Organic variance reflects real-world algorithm feed fluctuations (+/- 10%)
+        organic_reach_noise = self.rng.uniform(0.90, 1.10)
+        organic_eng_noise = self.rng.uniform(0.92, 1.08)
+
+        final_impressions = int(base_impressions * timing_factor * hashtag_factor * organic_reach_noise)
         final_impressions = max(100, final_impressions)
 
         effective_eng_rate = (
-            base_eng_rate * timing_factor * length_factor * novelty_factor * cta_factor
+            base_eng_rate * timing_factor * hashtag_eng_factor * length_factor * novelty_factor * cta_factor * organic_eng_noise
         )
         effective_eng_rate = max(0.010, min(0.18, effective_eng_rate))
 

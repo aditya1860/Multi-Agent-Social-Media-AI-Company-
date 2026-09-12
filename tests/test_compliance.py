@@ -95,3 +95,49 @@ def test_message_bus_hard_rejection_cap():
         assert bus.is_post_permanently_rejected(test_post_id) is True
         assert bus.post_rejection_counts[test_post_id] == 3
         assert msg3.metadata.get("permanently_excluded") is True
+
+
+def test_all_risk_keywords_trigger_deterministic_escalation():
+    """Verify that ALL defined safety/legal risk keywords trigger deterministic escalation 100% of the time."""
+    from agents.community_manager_agent import CommunityManagerAgent
+    from mock_platform.models import CommentRecord
+
+    client = LLMClient(offline_mode=True)
+    cm = CommunityManagerAgent(llm_client=client)
+    risk_keywords = [
+        "lawsuit",
+        "refund",
+        "unsafe",
+        "injury",
+        "scam",
+        "toxic",
+        "hazard",
+        "sue",
+        "fire",
+        "burn",
+        "hospital",
+        "lawyer",
+    ]
+
+    for kw in risk_keywords:
+        comment = CommentRecord(
+            comment_id=f"comm_{kw}",
+            post_id="post_test",
+            author="concerned_user",
+            text=f"Warning: this product caused an issue regarding {kw} on our trip!",
+            created_at="2026-09-12T10:00:00Z",
+            sentiment="negative",
+            has_risk_keyword=True,
+            risk_keyword=kw,
+        )
+        decision = cm.triage_comment(
+            comment=comment,
+            post_copy="Sample post copy",
+            channel="community_forum",
+        )
+        assert decision.action == "ESCALATE", f"Failed to escalate keyword: {kw}"
+        assert decision.escalate_to_human is True, f"Failed human escalation for keyword: {kw}"
+        assert decision.urgency == "HIGH", f"Expected HIGH urgency for keyword: {kw}"
+        assert decision.draft_reply is None, f"Expected no automated reply for keyword: {kw}"
+        assert kw in decision.escalation_reason.lower()
+

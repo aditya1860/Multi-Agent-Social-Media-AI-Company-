@@ -1,0 +1,252 @@
+{
+  "trial_number": 1,
+  "seed": 42,
+  "campaign_id": "camp_trial_1",
+  "week_1": {
+    "impressions": 8230,
+    "engagement_rate": 0.0938,
+    "positive_sentiment": 0.5,
+    "safety_escalations": 1,
+    "aggregates": {
+      "total_posts": 7,
+      "total_impressions": 8230,
+      "total_engagements": 772,
+      "avg_engagement_rate": 0.0938,
+      "channel_performance": {
+        "short_form": {
+          "post_count": 3,
+          "avg_impressions": 662.0,
+          "avg_engagement_rate": 0.0383
+        },
+        "community_forum": {
+          "post_count": 2,
+          "avg_impressions": 1310.5,
+          "avg_engagement_rate": 0.1339
+        },
+        "professional": {
+          "post_count": 2,
+          "avg_impressions": 1811.5,
+          "avg_engagement_rate": 0.0952
+        }
+      },
+      "timing_performance": {
+        "afternoon_12_16": {
+          "post_count": 5,
+          "avg_impressions": 921.4,
+          "avg_engagement_rate": 0.0927
+        },
+        "morning_07_11": {
+          "post_count": 2,
+          "avg_impressions": 1811.5,
+          "avg_engagement_rate": 0.0952
+        }
+      },
+      "hashtag_performance": {
+        "6_to_8_tags": {
+          "post_count": 3,
+          "avg_impressions": 662.0,
+          "avg_engagement_rate": 0.0383
+        },
+        "3_to_5_tags": {
+          "post_count": 4,
+          "avg_impressions": 1561.0,
+          "avg_engagement_rate": 0.1115
+        }
+      },
+      "cta_performance": {
+        "urgency": {
+          "post_count": 2,
+          "avg_engagement_rate": 0.0511,
+          "avg_comments_per_post": 19.5
+        },
+        "question": {
+          "post_count": 3,
+          "avg_engagement_rate": 0.1168,
+          "avg_comments_per_post": 47.7
+        },
+        "soft": {
+          "post_count": 1,
+          "avg_engagement_rate": 0.0366,
+          "avg_comments_per_post": 8.0
+        },
+        "value": {
+          "post_count": 1,
+          "avg_engagement_rate": 0.1386,
+          "avg_comments_per_post": 57.0
+        }
+      },
+      "top_posts": [
+        {
+          "post_id": "post_a4c258b18a",
+          "channel": "professional",
+          "eng_rate": 0.1316,
+          "impressions": 1717,
+          "time": "09:15:00",
+          "hashtag_count": 4,
+          "cta_type": "value",
+          "copy_snippet": "Consumer hardware is historically notorious for planned obsolescence\u2014especially "
+        },
+        {
+          "post_id": "post_0449025034",
+          "channel": "community_forum",
+          "eng_rate": 0.127,
+          "impressions": 1291,
+          "time": "14:00:00",
+          "hashtag_count": 3,
+          "cta_type": "question",
+          "copy_snippet": "Hey everyone, we're an indie hardware team building an outdoor solar lantern wit"
+        }
+      ],
+      "bottom_posts": [
+        {
+          "post_id": "post_b2be40f9d6",
+          "channel": "short_form",
+          "eng_rate": 0.031,
+          "impressions": 678,
+          "time": "14:00:00",
+          "hashtag_count": 8,
+          "cta_type": "urgency",
+          "copy_snippet": "Solar power without the bulky panels! Watch EcoGlow survive a 6-foot drop test. "
+        },
+        {
+          "post_id": "post_7251523cc5",
+          "channel": "short_form",
+          "eng_rate": 0.0309,
+          "impressions": 711,
+          "time": "14:00:00",
+          "hashtag_count": 8,
+          "cta_type": "soft",
+          "copy_snippet": "Solar power without the bulky panels! Watch EcoGlow survive a 6-foot drop test. "
+        }
+      ],
+      "sentiment_summary": {
+        "total_user_comments": 30,
+        "positive_ratio": 0.5,
+        "negative_ratio": 0.5,
+        "risk_flagged_count": 1
+      }
+    }
+  },
+  "week_2": {
+    "impressions": 13308,
+    "engagement_rate": 0.135,
+    "positive_sentiment": 0.67,
+    "safety_escalations": 1,
+    "aggregates": {
+      "total_posts": 7,
+      "total_impressions": 13308,
+      "total_engagements": 1797,
+      "avg_engagement_rate": 0.135,
+      "channel_performance": {
+        "short_form": {
+          "post_count": 3,
+          "avg_impressions": 2268.7,
+          "avg_engagement_rate": 0.1355
+        },
+        "community_forum": {
+          "post_count": 2,
+          "avg_impressions": 1292.0,
+          "avg_engagement_rate": 0.1405
+        },
+        "professional": {
+          "post_count": 2,
+          "avg_impressions": 1959.0,
+          "avg_engagement_rate": 0.1307
+        }
+      },
+      "timing_performance": {
+        "evening_17_21": {
+          "post_count": 5,
+          "avg_impressions": 1878.0,
+          "avg_engagement_rate": 0.1368
+        },
+        "morning_07_11": {
+          "post_count": 2,
+          "avg_impressions": 1959.0,
+          "avg_engagement_rate": 0.1307
+        }
+      },
+      "hashtag_performance": {
+        "3_to_5_tags": {
+          "post_count": 7,
+          "avg_impressions": 1901.1,
+          "avg_engagement_rate": 0.135
+        }
+      },
+      "cta_performance": {
+        "question": {
+          "post_count": 4,
+          "avg_engagement_rate": 0.1371,
+          "avg_comments_per_post": 80.8
+        },
+        "value": {
+          "post_count": 2,
+          "avg_engagement_rate": 0.1307,
+          "avg_comments_per_post": 61.0
+        },
+        "soft": {
+          "post_count": 1,
+          "avg_engagement_rate": 0.1363,
+          "avg_comments_per_post": 100.0
+        }
+      },
+      "top_posts": [
+        {
+          "post_id": "post_96faf350bf",
+          "channel": "community_forum",
+          "eng_rate": 0.1356,
+          "impressions": 1276,
+          "time": "18:00:00",
+          "hashtag_count": 3,
+          "cta_type": "question",
+          "copy_snippet": "Hey everyone, we're an indie hardware team building an outdoor solar lantern wit"
+        },
+        {
+          "post_id": "post_fd57a59964",
+          "channel": "short_form",
+          "eng_rate": 0.1344,
+          "impressions": 2329,
+          "time": "19:30:00",
+          "hashtag_count": 4,
+          "cta_type": "question",
+          "copy_snippet": "6 hours in mountain rain and still glowing strong. Would you trust solar on a 3-"
+        }
+      ],
+      "bottom_posts": [
+        {
+          "post_id": "post_69ca87b9c8",
+          "channel": "short_form",
+          "eng_rate": 0.1247,
+          "impressions": 2077,
+          "time": "19:30:00",
+          "hashtag_count": 4,
+          "cta_type": "question",
+          "copy_snippet": "6 hours in mountain rain and still glowing strong. Would you trust solar on a 3-"
+        },
+        {
+          "post_id": "post_af8507f457",
+          "channel": "professional",
+          "eng_rate": 0.1211,
+          "impressions": 1932,
+          "time": "09:15:00",
+          "hashtag_count": 4,
+          "cta_type": "value",
+          "copy_snippet": "Consumer hardware is historically notorious for planned obsolescence\u2014especially "
+        }
+      ],
+      "sentiment_summary": {
+        "total_user_comments": 42,
+        "positive_ratio": 0.67,
+        "negative_ratio": 0.33,
+        "risk_flagged_count": 1
+      }
+    }
+  },
+  "delta": {
+    "impressions_pct": 61.7,
+    "engagement_rate_pct": 43.9,
+    "positive_sentiment_pts": 17.0
+  },
+  "total_agent_messages": 135,
+  "compliance_rejections_logged": 0
+}

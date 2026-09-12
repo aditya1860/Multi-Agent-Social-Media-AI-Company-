@@ -87,3 +87,61 @@ def test_token_accounting_accumulation():
     )
     # In offline mode token counts are reported and can be tracked
     assert resp.total_tokens == resp.prompt_tokens + resp.eval_tokens
+
+
+def test_json_retry_escalation_recovery(monkeypatch):
+    """Verify that when Attempt 1 returns broken JSON, the client escalates and recovers on Attempt 2."""
+    client = LLMClient(offline_mode=False)
+
+    call_count = 0
+
+    def mock_call_ollama_chat(model, messages, temperature, json_format):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # Attempt 1 returns conversational invalid text
+            return ("Sorry, I cannot produce JSON right now.", 20, 10)
+        else:
+            # Attempt 2 returns valid JSON adhering to MockSchema
+            return ('{"title": "Recovered Title", "score": 88}', 35, 15)
+
+    monkeypatch.setattr(client, "_call_ollama_chat", mock_call_ollama_chat)
+
+    resp = client.generate(
+        messages=[{"role": "user", "content": "Return schema"}],
+        schema_validator=MockSchema,
+        agent_role="TestAgent",
+        max_retries=3,
+    )
+
+    assert resp.validation_attempts == 2
+    assert resp.fallback_used is False
+    assert resp.parsed_json == {"title": "Recovered Title", "score": 88}
+    assert call_count == 2
+
+
+def test_json_retry_escalation_fallback_on_triple_failure(monkeypatch):
+    """Verify that when all 3 attempts fail, sane fallback schema is safely returned without crashing."""
+    client = LLMClient(offline_mode=False)
+
+    call_count = 0
+
+    def mock_call_ollama_chat(model, messages, temperature, json_format):
+        nonlocal call_count
+        call_count += 1
+        return ("Broken syntax { bad json", 15, 5)
+
+    monkeypatch.setattr(client, "_call_ollama_chat", mock_call_ollama_chat)
+
+    resp = client.generate(
+        messages=[{"role": "user", "content": "Return schema"}],
+        schema_validator=MockSchema,
+        agent_role="TestAgent",
+        max_retries=3,
+    )
+
+    assert resp.validation_attempts == 3
+    assert resp.fallback_used is True
+    assert resp.parsed_json is not None
+    assert call_count == 3
+

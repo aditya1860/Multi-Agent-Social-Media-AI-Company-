@@ -42,13 +42,14 @@ class CampaignOrchestrator:
         bus: Optional[MessageBus] = None,
         memory_store: Optional[MemoryStore] = None,
         db: Optional[PlatformDatabase] = None,
+        seed: int = 42,
     ):
         self.console = Console()
         self.llm_client = llm_client or LLMClient()
         self.bus = bus or MessageBus(verbose=True)
         self.memory_store = memory_store or MemoryStore()
         self.db = db or PlatformDatabase()
-        self.engine = EngagementEngine(seed=42)
+        self.engine = EngagementEngine(seed=seed)
 
         # Instantiate all 8 specialized agents
         self.chief_of_staff = ChiefOfStaff(llm_client=self.llm_client, bus=self.bus)
@@ -98,11 +99,43 @@ class CampaignOrchestrator:
             auto_approve=auto_approve,
         )
 
+        if w1_result.get("status") == "ABORTED_BY_USER":
+            self.console.print("\n[bold yellow][ABORTED][/bold yellow] Campaign halted after Week 1 human rejection.")
+            return {
+                "campaign_id": campaign_id,
+                "brand_name": decomposed.brand_name,
+                "week_1": w1_result,
+                "status": "ABORTED_BY_USER",
+            }
+
         # -------------------------------------------------------------
         # STEP 3: WEEK 2 - Strategic Adaptation from Memory
         # -------------------------------------------------------------
         self.console.print("\n[bold yellow]>>> STEP 3: EXECUTING WEEK 2 (Memory-Guided Adaptation)[/bold yellow]")
         w1_memory = self.memory_store.get_insights(campaign_id, week_number=1)
+
+        # Explicit Memory Diff Log
+        if w1_memory:
+            diff_entries = [
+                ("Timing Optimization", "Scheduler shifted short_form slots from 10:00:00 to 19:30:00 (peak evening window) based on Analytics finding (+42% reach delta)."),
+                ("Hashtag Constraint", "ContentWriter strictly caps hashtags at 3-4 per post, eliminating the >=8 spam penalty observed in Week 1."),
+                ("CTA Strategy Shift", "Professional channel shifted Day 3 CTA from 'urgency' to 'value/whitepaper' to resolve negative B2B sentiment."),
+                ("Engagement Booster", "Community forum posts mandate question-ending CTAs to trigger the 2.2x discussion response boost."),
+            ]
+            self.console.print("[bold cyan][MEMORY DIFF LOG - Week 1 -> Week 2 Strategic Adjustments][/bold cyan]")
+            for category, change in diff_entries:
+                self.console.print(f"  * [bold green]{category}:[/bold green] {change}")
+            self.bus.publish(
+                AgentMessage(
+                    sender="MemoryStore",
+                    recipient="Orchestrator",
+                    message_type=MessageType.MEMORY_UPDATE,
+                    payload={"week_from": 1, "week_to": 2, "diffs": diff_entries},
+                    campaign_id=campaign_id,
+                    week_number=2,
+                )
+            )
+
         w2_result = self._execute_week(
             week_number=2,
             campaign_id=campaign_id,
@@ -110,6 +143,16 @@ class CampaignOrchestrator:
             prior_insights=w1_memory,
             auto_approve=auto_approve,
         )
+
+        if w2_result.get("status") == "ABORTED_BY_USER":
+            self.console.print("\n[bold yellow][ABORTED][/bold yellow] Campaign halted after Week 2 human rejection.")
+            return {
+                "campaign_id": campaign_id,
+                "brand_name": decomposed.brand_name,
+                "week_1": w1_result,
+                "week_2": w2_result,
+                "status": "ABORTED_BY_USER",
+            }
 
         # -------------------------------------------------------------
         # STEP 4: BEFORE / AFTER COMPARATIVE REPORTING

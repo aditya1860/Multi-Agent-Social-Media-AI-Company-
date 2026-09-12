@@ -60,8 +60,11 @@ class CommunityManagerAgent(BaseAgent):
         "hazard",
         "broken",
         "fire",
+        "burn",
         "exploded",
         "danger",
+        "hospital",
+        "lawyer",
     ]
 
     def __init__(self, llm_client=None, bus=None, db: Optional[PlatformDatabase] = None):
@@ -76,10 +79,12 @@ class CommunityManagerAgent(BaseAgent):
         self.db = db or PlatformDatabase()
 
     def _check_hardcoded_risk(self, comment_text: str) -> Optional[str]:
-        """Layer 1: Deterministic scan for critical safety/legal keywords."""
+        """Layer 1: Deterministic scan for critical safety/legal keywords with word boundaries."""
+        import re
         text_lower = comment_text.lower()
         for kw in self.RISK_KEYWORDS:
-            if kw in text_lower:
+            pattern = rf"\b{re.escape(kw)}\b"
+            if re.search(pattern, text_lower):
                 return kw
         return None
 

@@ -44,7 +44,7 @@ def run_demo(args: argparse.Namespace) -> None:
 
     from orchestrator import CampaignOrchestrator
 
-    orchestrator = CampaignOrchestrator()
+    orchestrator = CampaignOrchestrator(seed=getattr(args, "seed", 42))
     brief = args.brief or DEFAULT_SEED_BRIEF
     campaign_id = args.campaign_id or "camp_ecoglow_demo"
 
@@ -55,6 +55,10 @@ def run_demo(args: argparse.Namespace) -> None:
         campaign_id=campaign_id,
         auto_approve=args.auto_approve,
     )
+
+    if result.get("status") == "ABORTED_BY_USER":
+        console.print("\n[bold yellow][ABORTED] Campaign publication was rejected by human operator at the approval gate.[/bold yellow]\n")
+        return
 
     console.print("\n[bold green][SUCCESS] Demo execution finished successfully![/bold green]")
     console.print(
@@ -197,6 +201,9 @@ def main() -> None:
     )
     demo_parser.add_argument(
         "--offline", action="store_true", help="Force offline deterministic stub mode"
+    )
+    demo_parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for engagement simulation"
     )
 
     # Command: view-feed
