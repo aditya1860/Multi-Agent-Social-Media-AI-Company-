@@ -465,7 +465,7 @@ class LLMClient:
                 stub_data = {
                     "channel": "professional",
                     "post_copy": (
-                        "Consumer hardware is historically notorious for planned obsolescence—especially portable outdoor electronics. "
+                        "Consumer hardware is historically notorious for planned obsolescence -- especially portable outdoor electronics. "
                         "At EcoGlow, our engineering objective was straightforward: achieve circular lifecycle manufacturing without sacrificing IP67 resilience. "
                         "By integrating modular solar cells and high-yield recycled marine polymers, we achieved a 42% lower cradle-to-gate carbon footprint compared to standard ABS lanterns. "
                         "Sustainable industrial design requires holding hardware to empirical lifecycle benchmarks."
