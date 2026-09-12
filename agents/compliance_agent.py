@@ -16,7 +16,7 @@ DUAL-LAYER SAFETY ARCHITECTURE:
 
 import re
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 
@@ -28,6 +28,61 @@ class ComplianceReview(BaseModel):
     violations: List[str] = Field(default_factory=list)
     actionable_feedback: str
     deterministic_flags: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_compliance(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "compliance_review" in data and isinstance(data["compliance_review"], dict):
+            data = {**data["compliance_review"], **{k: v for k, v in data.items() if k != "compliance_review"}}
+
+        # Normalize status
+        status = str(data.get("status", "")).upper()
+        if "APPROV" in status:
+            status = "APPROVED"
+        elif "REJECT" in status:
+            status = "REJECTED"
+        else:
+            status = "APPROVED" if data.get("approved") is True else "REJECTED"
+        data["status"] = status
+
+        # Normalize approved boolean
+        if "approved" not in data or data["approved"] is None:
+            data["approved"] = (status == "APPROVED")
+        elif isinstance(data["approved"], str):
+            data["approved"] = data["approved"].lower() in ("true", "1", "yes", "approved")
+        else:
+            data["approved"] = bool(data["approved"])
+
+        # Normalize risk_level
+        risk = str(data.get("risk_level", "LOW")).upper()
+        if "HIGH" in risk or risk in ("2", "3"):
+            data["risk_level"] = "HIGH"
+        elif "MED" in risk or risk == "1":
+            data["risk_level"] = "MEDIUM"
+        else:
+            data["risk_level"] = "LOW"
+
+        # Normalize actionable_feedback
+        if not data.get("actionable_feedback"):
+            data["actionable_feedback"] = "Approved: compliant with brand guidelines." if data["approved"] else "Remediation required."
+
+        # Normalize violations
+        v = data.get("violations")
+        if isinstance(v, str):
+            data["violations"] = [v]
+        elif not isinstance(v, list):
+            data["violations"] = []
+
+        # Normalize deterministic_flags
+        d = data.get("deterministic_flags")
+        if isinstance(d, str):
+            data["deterministic_flags"] = [d]
+        elif not isinstance(d, list):
+            data["deterministic_flags"] = []
+
+        return data
 
 
 COMPLIANCE_SYSTEM_PROMPT = """You are the Senior Brand & Compliance Officer at an advertising agency.

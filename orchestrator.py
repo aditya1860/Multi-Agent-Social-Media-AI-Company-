@@ -186,16 +186,21 @@ class CampaignOrchestrator:
             campaign_id=campaign_id,
         )
 
-        # 2. Content Creation, Creative Briefs, and Compliance Gating
+        # Safe pillar indexing with robust defaults
+        pillars = list(strategy_plan.content_pillars) if strategy_plan.content_pillars else []
+        default_pillars = ["Field Test Evidence", "Community Q&A", "Customer Durability Proof"]
+        while len(pillars) < 3:
+            pillars.append(default_pillars[len(pillars)])
+
         # 7 posts distributed across channels: 3 short_form, 2 community_forum, 2 professional
         post_schedule_plan = [
-            (1, "short_form", strategy_plan.content_pillars[0], "10:00:00" if week_number == 1 else "19:30:00", "urgency" if week_number == 1 else "question", "field_test"),
-            (2, "community_forum", strategy_plan.content_pillars[1], "14:00:00" if week_number == 1 else "18:00:00", "question", "q_and_a"),
-            (3, "professional", strategy_plan.content_pillars[0], "09:30:00", "urgency" if week_number == 1 else "value", "thought_leadership"),
-            (4, "short_form", strategy_plan.content_pillars[1], "11:00:00" if week_number == 1 else "20:00:00", "soft", "product_feature"),
-            (5, "community_forum", strategy_plan.content_pillars[2], "15:00:00" if week_number == 1 else "17:30:00", "question", "discussion"),
-            (6, "professional", strategy_plan.content_pillars[1], "10:00:00", "value", "case_study"),
-            (7, "short_form", strategy_plan.content_pillars[2], "19:00:00", "question", "field_test"),
+            (1, "short_form", pillars[0], "10:00:00" if week_number == 1 else "19:30:00", "urgency" if week_number == 1 else "question", "field_test"),
+            (2, "community_forum", pillars[1], "14:00:00" if week_number == 1 else "18:00:00", "question", "q_and_a"),
+            (3, "professional", pillars[0], "09:30:00", "urgency" if week_number == 1 else "value", "thought_leadership"),
+            (4, "short_form", pillars[1], "11:00:00" if week_number == 1 else "20:00:00", "soft", "product_feature"),
+            (5, "community_forum", pillars[2], "15:00:00" if week_number == 1 else "17:30:00", "question", "discussion"),
+            (6, "professional", pillars[1], "10:00:00", "value", "case_study"),
+            (7, "short_form", pillars[2], "19:00:00", "question", "field_test"),
         ]
 
         approved_posts: List[Dict[str, Any]] = []

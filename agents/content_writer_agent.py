@@ -8,7 +8,7 @@ Responsible for:
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 
@@ -23,6 +23,39 @@ class ContentDraft(BaseModel):
     cta_type: str = Field(description="'question', 'value', 'urgency', or 'soft'")
     format_type: str = "field_test"
     revision_notes: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_draft(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "content_draft" in data and isinstance(data["content_draft"], dict):
+            data = {**data["content_draft"], **{k: v for k, v in data.items() if k != "content_draft"}}
+
+        # Normalize hashtags
+        ht = data.get("hashtags")
+        if isinstance(ht, str):
+            data["hashtags"] = [t.strip() for t in ht.replace("#", " #").split() if t.strip()]
+        elif not isinstance(ht, list):
+            data["hashtags"] = ["#SolarTech", "#EcoGlow", "#OutdoorGear"]
+
+        # Normalize post_copy
+        post_copy = str(data.get("post_copy") or "")
+        data["post_copy"] = post_copy
+
+        if not data.get("hook"):
+            data["hook"] = post_copy[:60] or "Discover EcoGlow"
+        if not data.get("cta"):
+            data["cta"] = "Join the waitlist today."
+        if not data.get("tone"):
+            data["tone"] = "authentic"
+        if not data.get("cta_type"):
+            data["cta_type"] = "question" if "?" in data.get("cta", "") else "value"
+        if not data.get("format_type"):
+            data["format_type"] = "field_test"
+        if not data.get("channel"):
+            data["channel"] = "short_form"
+        return data
 
 
 CONTENT_WRITER_SYSTEM_PROMPT = """You are an elite Senior Content Copywriter crafting social media posts.

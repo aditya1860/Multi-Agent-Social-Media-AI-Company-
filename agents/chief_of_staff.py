@@ -10,7 +10,7 @@ Responsible for:
 
 import sys
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -28,6 +28,30 @@ class DecomposedCampaign(BaseModel):
     target_channels: List[str] = Field(default_factory=lambda: ["short_form", "community_forum", "professional"])
     key_phases: List[str]
     approval_required: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "brand" in data and "brand_name" not in data:
+                data["brand_name"] = str(data["brand"])
+            if "campaign" in data and "campaign_name" not in data:
+                data["campaign_name"] = str(data["campaign"])
+            if "summary" in data and "campaign_summary" not in data:
+                data["campaign_summary"] = str(data["summary"])
+            if "objectives" in data and "core_objective" not in data:
+                data["core_objective"] = str(data["objectives"])
+            elif isinstance(data.get("core_objective"), (dict, list)):
+                data["core_objective"] = str(data["core_objective"])
+            if "audiences" in data and "target_audiences" not in data:
+                data["target_audiences"] = data["audiences"]
+            if isinstance(data.get("target_audiences"), str):
+                data["target_audiences"] = [data["target_audiences"]]
+            if "phases" in data and "key_phases" not in data:
+                data["key_phases"] = data["phases"]
+            if isinstance(data.get("key_phases"), str):
+                data["key_phases"] = [data["key_phases"]]
+        return data
 
 
 CHIEF_OF_STAFF_SYSTEM_PROMPT = """You are the Chief of Staff and Head of Agency Operations.

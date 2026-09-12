@@ -11,6 +11,20 @@ Commands:
 import argparse
 import os
 import sys
+
+# Ensure Windows terminal handles UTF-8 output and emojis without crashing on cp1252
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except Exception:
+            pass
+    if hasattr(sys.stderr, "reconfigure"):
+        try:
+            sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except Exception:
+            pass
+
 from typing import Optional
 from rich.console import Console
 from rich.panel import Panel

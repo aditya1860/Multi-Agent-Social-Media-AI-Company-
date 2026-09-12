@@ -18,7 +18,7 @@ Instead, we strictly separate concerns:
 
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 from memory.memory_store import MemoryStore, WeeklyInsightRecord
@@ -39,6 +39,35 @@ class AnalyticsReport(BaseModel):
         }
     )
     precomputed_aggregates: Dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_analytics(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "analytics_report" in data and isinstance(data["analytics_report"], dict):
+            data = {**data["analytics_report"], **{k: v for k, v in data.items() if k != "analytics_report"}}
+
+        if not data.get("kpi_verdict"):
+            data["kpi_verdict"] = "Weekly KPI performance analyzed."
+
+        for list_field in ["top_performing_patterns", "underperforming_patterns", "actionable_recommendations"]:
+            val = data.get(list_field)
+            if isinstance(val, str):
+                data[list_field] = [val]
+            elif isinstance(val, dict):
+                data[list_field] = [f"{k}: {v}" for k, v in val.items()]
+            elif not isinstance(val, list):
+                data[list_field] = []
+
+        if not data.get("best_timing_slots") or not isinstance(data.get("best_timing_slots"), dict):
+            data["best_timing_slots"] = {
+                "short_form": "19:30:00",
+                "professional": "09:15:00",
+                "community_forum": "18:00:00",
+            }
+
+        return data
 
 
 ANALYTICS_SYSTEM_PROMPT = """You are the Chief Data Scientist and Social Media Analytics Officer.
@@ -270,7 +299,7 @@ class AnalyticsAgent(BaseAgent):
             f"CAMPAIGN ID: {campaign_id}\n"
             f"WEEK NUMBER: {week_number}\n\n"
             f"--- PRE-COMPUTED DETERMINISTIC AGGREGATES ---\n"
-            f"{json.dumps(aggregates, indent=2)}\n\n"
+            f"{json.dumps(aggregates, separators=(',', ':'))}\n\n"
             "TASK:\n"
             "1. Review the performance across channels, timing windows, hashtag bins, and CTA types.\n"
             "2. Identify causal patterns explaining top vs bottom posts.\n"

@@ -9,7 +9,7 @@ Responsible for:
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 from mock_platform.database import PlatformDatabase
@@ -22,6 +22,21 @@ class ScheduleDecision(BaseModel):
     scheduled_time: str = Field(description="Format 'HH:MM:SS', e.g. '19:30:00'")
     timing_rationale: str
     platform_post_ready: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_schedule(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "schedule_decision" in data and isinstance(data["schedule_decision"], dict):
+            data = {**data["schedule_decision"], **{k: v for k, v in data.items() if k != "schedule_decision"}}
+        if not data.get("scheduled_time"):
+            data["scheduled_time"] = "19:00:00"
+        if not data.get("timing_rationale"):
+            data["timing_rationale"] = "Targeting peak engagement window."
+        if "platform_post_ready" not in data:
+            data["platform_post_ready"] = True
+        return data
 
 
 SCHEDULER_SYSTEM_PROMPT = """You are the Senior Traffic & Social Media Publishing Officer.

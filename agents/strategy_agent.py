@@ -8,8 +8,9 @@ Responsible for:
 - Ingesting prior-week insights from persistent memory to replan Week 2+
 """
 
+import json
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 from memory.memory_store import WeeklyInsightRecord
@@ -26,6 +27,86 @@ class StrategyPlan(BaseModel):
     target_kpis: Dict[str, Any]
     strategic_rationale: str
     memory_adaptations: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_strategy_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "strategy_plan" in data and isinstance(data["strategy_plan"], dict):
+                data = {**data["strategy_plan"], **{k: v for k, v in data.items() if k != "strategy_plan"}}
+
+            # Normalize strategic_rationale (Qwen 2.5 sometimes outputs a dict of channel rationales)
+            sr = data.get("strategic_rationale")
+            if isinstance(sr, dict):
+                data["strategic_rationale"] = "; ".join(f"{k}: {v}" for k, v in sr.items())
+            elif isinstance(sr, list):
+                data["strategic_rationale"] = "; ".join(str(x) for x in sr)
+            elif not sr:
+                data["strategic_rationale"] = "Balanced multi-channel growth based on target audience persona."
+
+            # Normalize target_audience
+            if "target_audience" in data and isinstance(data["target_audience"], dict):
+                data["target_audience"] = (
+                    data["target_audience"].get("description")
+                    or data["target_audience"].get("target")
+                    or json.dumps(data["target_audience"])
+                )
+            elif not data.get("target_audience"):
+                data["target_audience"] = "Outdoor enthusiasts, backpackers, and vanlifers seeking reliable eco-friendly gear."
+
+            # Normalize channel_mix
+            cm = data.get("channel_mix")
+            if isinstance(cm, dict):
+                clean_cm = {}
+                for k, v in cm.items():
+                    try:
+                        clean_cm[str(k)] = float(v)
+                    except (ValueError, TypeError):
+                        pass
+                if clean_cm:
+                    data["channel_mix"] = clean_cm
+            if not data.get("channel_mix") or not isinstance(data.get("channel_mix"), dict):
+                data["channel_mix"] = {"short_form": 0.40, "community_forum": 0.35, "professional": 0.25}
+
+            # Normalize target_kpis
+            if not data.get("target_kpis") or not isinstance(data.get("target_kpis"), dict):
+                data["target_kpis"] = {"target_impressions": 10000, "target_engagement_rate": 0.08}
+
+            # Normalize posting_cadence_days
+            pcd = data.get("posting_cadence_days")
+            if isinstance(pcd, list):
+                clean_days = []
+                for d in pcd:
+                    try:
+                        clean_days.append(int(d))
+                    except (ValueError, TypeError):
+                        pass
+                data["posting_cadence_days"] = clean_days or [1, 2, 3, 4, 5, 6, 7]
+            else:
+                data["posting_cadence_days"] = [1, 2, 3, 4, 5, 6, 7]
+
+            # Normalize content_pillars
+            if "content_pillars" in data:
+                raw_pillars = data["content_pillars"]
+                if isinstance(raw_pillars, list):
+                    clean_pillars = []
+                    for item in raw_pillars:
+                        if isinstance(item, dict):
+                            clean_pillars.append(item.get("pillar") or item.get("name") or str(item))
+                        else:
+                            clean_pillars.append(str(item))
+                    data["content_pillars"] = clean_pillars or ["Product Durability Benchmarks", "Community Q&A", "Customer Problem Solving"]
+                elif isinstance(raw_pillars, dict):
+                    all_p = []
+                    for v in raw_pillars.values():
+                        if isinstance(v, list):
+                            all_p.extend([str(x) for x in v])
+                        else:
+                            all_p.append(str(v))
+                    data["content_pillars"] = all_p or ["Product Durability Benchmarks", "Community Q&A", "Customer Problem Solving"]
+            if not data.get("content_pillars"):
+                data["content_pillars"] = ["Product Durability Benchmarks", "Community Q&A", "Customer Problem Solving"]
+        return data
 
 
 STRATEGY_SYSTEM_PROMPT = """You are the Chief Strategy Officer of an AI-driven digital marketing company.

@@ -16,7 +16,7 @@ DUAL-LAYER ESCALATION ARCHITECTURE:
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 from mock_platform.database import PlatformDatabase
@@ -30,6 +30,41 @@ class CommentTriageDecision(BaseModel):
     sentiment: str = Field(description="'positive', 'neutral', or 'negative'")
     escalation_reason: Optional[str] = None
     draft_reply: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_triage(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "comment_triage_decision" in data and isinstance(data["comment_triage_decision"], dict):
+            data = {**data["comment_triage_decision"], **{k: v for k, v in data.items() if k != "comment_triage_decision"}}
+
+        action = str(data.get("action", "")).upper()
+        if "ESCALAT" in action:
+            action = "ESCALATE"
+        else:
+            action = "REPLY"
+        data["action"] = action
+
+        if "escalate_to_human" not in data or data["escalate_to_human"] is None:
+            data["escalate_to_human"] = (action == "ESCALATE")
+        elif isinstance(data["escalate_to_human"], str):
+            data["escalate_to_human"] = data["escalate_to_human"].lower() in ("true", "1", "yes")
+        else:
+            data["escalate_to_human"] = bool(data["escalate_to_human"])
+
+        urgency = str(data.get("urgency", "LOW")).upper()
+        if "HIGH" in urgency:
+            data["urgency"] = "HIGH"
+        elif "MED" in urgency:
+            data["urgency"] = "MEDIUM"
+        else:
+            data["urgency"] = "LOW"
+
+        if not data.get("sentiment"):
+            data["sentiment"] = "neutral"
+
+        return data
 
 
 COMMUNITY_SYSTEM_PROMPT = """You are the Senior Community Manager and Customer Advocate for the brand.
@@ -214,17 +249,21 @@ class CommunityManagerAgent(BaseAgent):
         posts: List[Any],
         campaign_id: str,
         week_number: int,
+        max_comments_per_post: int = 2,
     ) -> Dict[str, Any]:
-        """Triage all non-agent comments across all posts in a campaign week."""
+        """Triage non-agent comments across all posts in a campaign week, prioritizing risk interception."""
         total_comments = 0
         escalated_count = 0
         replied_count = 0
 
         for post in posts:
             comments = self.db.get_comments_for_post(post.post_id)
-            for comm in comments:
-                if comm.is_agent_reply:
-                    continue
+            # Prioritize risk comments first, then sample up to max_comments_per_post
+            risk_comms = [c for c in comments if c.has_risk_keyword and not c.is_agent_reply]
+            safe_comms = [c for c in comments if not c.has_risk_keyword and not c.is_agent_reply]
+            selected_comms = risk_comms + safe_comms[: max(1, max_comments_per_post - len(risk_comms))]
+
+            for comm in selected_comms:
                 total_comments += 1
                 decision = self.triage_comment(
                     comment=comm,

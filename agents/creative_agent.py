@@ -8,7 +8,7 @@ Responsible for:
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from agents.base_agent import BaseAgent
 from bus.events import MessageType
 
@@ -21,6 +21,39 @@ class CreativeBrief(BaseModel):
     lighting_mood: str = Field(description="Lighting style, contrast, warmth, and atmosphere")
     text_overlay_spec: str = Field(description="Font style, position, exact text overlay")
     aspect_ratio: str = Field(description="'9:16', '16:9', '1:1', or '4:5'")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_creative_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        # Handle wrapping key if any
+        if "creative_brief" in data and isinstance(data["creative_brief"], dict):
+            data = {**data["creative_brief"], **{k: v for k, v in data.items() if k != "creative_brief"}}
+        # Normalize color_palette
+        cp = data.get("color_palette")
+        if isinstance(cp, dict):
+            data["color_palette"] = [f"{k}: {v}" for k, v in cp.items()]
+        elif isinstance(cp, str):
+            data["color_palette"] = [x.strip() for x in cp.split(",") if x.strip()]
+        elif not isinstance(cp, list):
+            data["color_palette"] = ["#1A365D", "#2B6CB0", "#E2E8F0"]
+
+        # Normalize string fields that LLM might return as dicts or lists
+        for str_field in ["text_overlay_spec", "composition", "visual_concept", "lighting_mood", "asset_type", "aspect_ratio"]:
+            val = data.get(str_field)
+            if isinstance(val, dict):
+                data[str_field] = ", ".join(f"{k}: {v}" for k, v in val.items())
+            elif isinstance(val, list):
+                data[str_field] = ", ".join(str(x) for x in val)
+            elif val is None or not str(val).strip():
+                if str_field == "aspect_ratio":
+                    data[str_field] = "1:1"
+                elif str_field == "asset_type":
+                    data[str_field] = "digital graphic"
+                else:
+                    data[str_field] = "Standard brand visual specification"
+        return data
 
 
 CREATIVE_SYSTEM_PROMPT = """You are the Creative Director of a digital marketing agency.

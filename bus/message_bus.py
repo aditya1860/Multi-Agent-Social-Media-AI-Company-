@@ -18,12 +18,26 @@ Why Synchronous?
 import json
 import os
 import sqlite3
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
+
+# Ensure Windows terminal handles UTF-8 output without crashing on cp1252
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except Exception:
+            pass
+    if hasattr(sys.stderr, "reconfigure"):
+        try:
+            sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+        except Exception:
+            pass
 
 from bus.events import AgentMessage, MessageType
 
@@ -234,14 +248,29 @@ class MessageBus:
         elif "ANALYTICS" in message.message_type.value:
             border_style = "cyan"
 
-        self.console.print(
-            Panel(
-                Text(summary_text, style="white"),
-                title=header,
-                border_style=border_style,
-                padding=(0, 1),
+        try:
+            self.console.print(
+                Panel(
+                    Text(summary_text, style="white"),
+                    title=header,
+                    border_style=border_style,
+                    padding=(0, 1),
+                )
             )
-        )
+        except Exception:
+            # Fallback to ascii sanitized text if terminal charmap cannot encode unicode/emojis
+            ascii_summary = summary_text.encode("ascii", "replace").decode("ascii")
+            try:
+                self.console.print(
+                    Panel(
+                        Text(ascii_summary, style="white"),
+                        title=Text(f"[{time_str}] {message.sender} -> {message.recipient} [{message.message_type.value}]"),
+                        border_style=border_style,
+                        padding=(0, 1),
+                    )
+                )
+            except Exception:
+                pass
 
     def is_post_permanently_rejected(self, post_id: str) -> bool:
         """Returns True if the post exceeded the hard rejection cap."""
