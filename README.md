@@ -165,15 +165,25 @@ python cli.py start-platform --port 8000
 - **Relational SQLite vs. Vector RAG:**
   - Weekly campaign memory consists of structured causal hypotheses, channel-specific timing slots, and numerical KPI summaries indexed cleanly by `(campaign_id, week_number)`.
   - Storing structured JSON records in SQLite (`data/memory.db`) provides 100% exact deterministic recall, zero embedding latency, zero vector DB memory overhead, and eliminates hallucinated semantic similarity errors.
-- **Proof of Adaptation (Week 1 -> Week 2 across 5 Independent Trials):**
+- **Proof of Adaptation (Week 1 -> Week 2):**
   - Week 1 baseline posts on `short_form` were scheduled in the morning with 8 hashtags and suffered penalties; professional posts featured sales-urgency hooks.
   - Analytics identified evening windows yielded +42% to +50% reach, question CTAs boosted comments 2.1x, and 8+ hashtags triggered spam suppression.
   - Week 2 autonomously adapted: shifted short-form to the 19:30 evening peak, capped hashtags at 4, and adopted question CTAs.
-  - **Empirical Multi-Trial Results (Mean ± Std Dev across 5 runs, tracked in `docs/run_artifacts/`):**
-    - **Total Impressions:** 8,210.6 ± 96.5 -> **13,097.2 ± 292.3** (**+59.54% ± 4.87%**)
-    - **Avg Engagement Rate:** 9.86% ± 0.35% -> **13.79% ± 0.24%** (**+39.9% ± 3.13%**, improved in 5/5 trials)
-    - **Positive Comment Ratio:** 50.4% ± 1.2% -> **66.6% ± 1.1%** (**+16.2 ± 1.1% pts**)
-    - **Safety Escalations:** **10/10 Intercepted (100% success)** via deterministic keyword gate.
+
+  #### A. Single-Run Standard CLI Demo Output (Seed 42, `cli.py demo --auto-approve --offline`)
+  | Key Metric | Week 1 (Baseline) | Week 2 (Adapted) | Delta / Impact |
+  |---|:---:|:---:|:---:|
+  | **Total Impressions** | 8,230 | 13,308 | **+61.7%** |
+  | **Total Engagements** | 756 | 1,769 | **+134.0%** |
+  | **Avg Engagement Rate** | 9.19% | 13.29% | **+44.6%** |
+  | **Positive Comment %** | 50% | 67% | **+17.0% pts** |
+  | **Safety Escalations** | 1 | 1 | **100% Intercepted** |
+
+  #### B. Empirical Multi-Trial Benchmark (Mean ± Std Dev across 5 seeds, tracked in `docs/run_artifacts/summary_metrics.json`)
+  - **Total Impressions:** 8,210.6 ± 96.5 -> **13,097.2 ± 292.3** (**+59.54% ± 4.87%**)
+  - **Avg Engagement Rate:** 9.86% ± 0.35% -> **13.79% ± 0.24%** (**+39.9% ± 3.13%**, improved in 5/5 trials)
+  - **Positive Comment Ratio:** 50.4% ± 1.2% -> **66.6% ± 1.1%** (**+16.2 ± 1.1% pts**)
+  - **Safety Escalations:** **10/10 Intercepted (100% success)** via deterministic keyword gate.
 
 ---
 
@@ -193,13 +203,22 @@ Audience engagement is governed by **8 deliberate, non-linear hidden rules** doc
 
 ---
 
-## 7. Known Limitations & Failure Modes Encountered
+## 7. Known Limitations & Real Observed Local LLM Failure Modes
 
-Defensible engineering requires honest documentation of constraints:
-1. **Sample Size & Ground-Truth Detection ($N=14$):** At 14 posts across 2 weeks, 4 of 8 rules were fully detected with high confidence (timing, question CTAs, CTA conflict, comment risk); 2 were partially detected (hashtag sweet spot vs spam); 1 was undetectable due to schedule format rotation (novelty decay); and 1 (hype buzzwords) was never triggered on-platform because the Compliance agent blocked 100% of hype copy upstream.
-2. **Upstream Agent Bias:** Content writers naturally generate detailed professional copy and 3-4 hashtags under brand prompts, so extreme penalties (0 hashtags, ultra-short B2B copy) are not observable in live logs.
-3. **Hardware & Concurrency:** The synchronous bus serializes calls to prevent 8GB VRAM thrashing. On CPU-only environments without CUDA, inference latency scales to ~11s per call (~4-5 mins per full demo).
-4. **Visual Multimodal QA:** The Creative Agent emits detailed text composition briefs, but without an image model (e.g. Stable Diffusion), there is no visual asset generation or visual inspection.
+Defensible engineering requires honest documentation of real-world constraints:
+1. **Real-World Local Model JSON Drift & Schema Normalization:**
+   - During live runs with `qwen2.5:7b-instruct`, the model occasionally altered output field shapes. For instance, in Week 2 strategy formulation, it returned `strategic_rationale` structured as a dictionary of channel rationales (`{'short_form': '...', 'professional': '...'}`) rather than a scalar string. Instead of failing the pipeline, Pydantic `@model_validator(mode='before')` hooks normalize dictionary variations into clean unified strings.
+   - Similarly, in Creative Brief generation, Qwen 2.5 occasionally keyed `color_palette` as an object (`{"primary": "#...", "secondary": "#..."}`) rather than a list of strings, which our normalizer flattens automatically.
+2. **Local Model Analytics Timeout on Tabular Data:**
+   - Prompting a local 7B model with a complete uncompressed table of 14 posts, multiple interaction metrics, and threaded audience comments exceeded the default 120-second HTTP timeout on consumer laptops.
+   - We resolved this by (a) computing deterministic aggregations in Python so the LLM is only asked to perform causal reasoning, (b) serializing compact JSON separators in the prompt, (c) increasing the Ollama client timeout to 180 seconds, and (d) providing a type-accurate fallback schema if triple-retry timeouts occur.
+3. **Sample Size & Ground-Truth Detection ($N=14$):**
+   - At 14 posts across 2 weeks, 4 of 8 hidden platform rules were fully detected with high statistical confidence (timing windows, question CTAs, CTA channel conflicts, comment safety risks).
+   - 2 were partially detected (the 3-5 hashtag sweet spot was visible vs the 8+ spam penalty, but 0-hashtag penalties were unobserved because the Content Writer never emitted 0 hashtags).
+   - 1 was undetectable due to schedule format rotation (novelty decay).
+   - 1 (hype buzzwords) was never triggered on-platform because the Compliance Agent blocked 100% of hype copy upstream during pre-publication review.
+4. **Hardware & Token Accounting:**
+   - In live Ollama mode, exact prompt and eval token counts are extracted directly from Ollama's HTTP response. In offline stub mode, tokens are dynamically estimated based on content length (~1.33 tokens/word). Deterministic safety escalations cost exactly 0 tokens because they bypass the LLM completely.
 
 ---
 

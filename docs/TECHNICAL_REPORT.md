@@ -185,7 +185,21 @@ To ensure that claimed improvements are scientifically rigorous rather than cher
 ### 7.1 Input Client Brief
 > *"Launch campaign for EcoGlow: an ultra-compact modular solar lantern engineered with recycled ocean plastic and solid-state solar cells for backpackers, vanlifers, and eco-conscious outdoor enthusiasts. Objectives: 2-week social awareness campaign to establish authentic community trust, educate on durability benchmarks, and drive early waitlist pre-orders."*
 
-### 7.2 Empirical Optimization Table Across Multi-Runs (Mean ± Std Dev)
+### 7.2 Single-Run Standard CLI Demo Output (Seed 42, `cli.py demo --auto-approve --offline`)
+
+Executing the standard demo out of the box deterministically yields the following terminal comparison table:
+
+| Key Metric | Week 1 (Baseline) | Week 2 (Memory-Adapted) | Delta / Impact | Note |
+|---|:---:|:---:|:---:|---|
+| **Total Impressions** | 8,230 | 13,308 | **+61.7%** | Reach expansion from evening window shift. |
+| **Total Engagements** | 756 | 1,769 | **+134.0%** | Driven by question-ending CTAs on community forum. |
+| **Avg Engagement Rate** | 9.19% | 13.29% | **+44.6%** | Consistent with multi-run distribution. |
+| **Positive Comment %** | 50% | 67% | **+17.0% pts** | De-escalation from whitepaper transition. |
+| **Safety Escalations** | 1 | 1 | **100% Intercepted** | Intercepted simulated scam threat without auto-reply. |
+
+### 7.3 Empirical Optimization Table Across Multi-Runs (Mean ± Std Dev)
+
+To ensure that claimed improvements are scientifically rigorous rather than cherry-picked artifacts of a single lucky seed, we executed a multi-trial experiment series using `scripts/run_experiments.py`. We tested 5 complete end-to-end 2-week campaigns across independent random seeds (`[42, 101, 777, 2024, 9999]`), logging all raw JSON telemetry to `docs/run_artifacts/run_1.json` through `run_5.json`, synthesized in `docs/run_artifacts/summary_metrics.json`.
 
 | Key Metric | Week 1 (Baseline) | Week 2 (Memory-Adapted) | Mean Delta / Impact | Defense & Significance |
 |---|:---:|:---:|:---:|---|
@@ -259,6 +273,12 @@ Defensible AI engineering requires transparent documentation of failure modes en
 4. **VRAM Thrashing with Multi-Model Routing:**
    - *Failure:* Attempting to run a 3B router alongside the 7B primary model on an 8GB GPU caused constant disk swapping and 3-second latencies per call.
    - *Fix:* Standardized on the 7B model for the primary pipeline with parameter-gated routing.
+5. **Local Model JSON Drift & Nested Schema Variation:**
+   - *Failure:* In live Week 2 replanning, Qwen 2.5 occasionally structured `strategic_rationale` as a channel-keyed dictionary (`{'short_form': '...', 'professional': '...'}`) instead of a scalar string, triggering Pydantic schema validation errors.
+   - *Fix:* Implemented Pydantic `@model_validator(mode='before')` normalizers across all schemas (`StrategyPlan`, `CreativeBrief`, `ContentDraft`, `ComplianceReview`) that safely flatten nested dictionary representations into compliant types before validation.
+6. **Local Tabular Analytics Inference Latency:**
+   - *Failure:* Evaluating a 14-post multi-variable tabular dataset through a local 7B model on consumer hardware occasionally exceeded default 120-second HTTP request timeouts.
+   - *Fix:* Pre-computed deterministic grouping aggregations in Python, compacted JSON prompt formatting, raised Ollama HTTP timeouts to 180 seconds, and added a type-accurate fallback schema if retries exhaust.
 
 ### 8.2 What We Would Build with Two More Weeks
 1. **Multi-Modal Visual Preview Generation:** Integrate local Stable Diffusion (e.g., SD-Turbo via Diffusers) to render actual image assets directly from the Creative Agent's visual briefs.
