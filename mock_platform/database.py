@@ -343,3 +343,18 @@ class PlatformDatabase:
             metrics=metrics,
             comments=comments,
         )
+
+    def clear_campaign(self, campaign_id: str) -> None:
+        """Purge all posts, comments, and metrics associated with a campaign ID."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "DELETE FROM platform_comments WHERE post_id IN (SELECT post_id FROM platform_posts WHERE campaign_id = ?)",
+                (campaign_id,),
+            )
+            cursor.execute(
+                "DELETE FROM platform_metrics WHERE post_id IN (SELECT post_id FROM platform_posts WHERE campaign_id = ?)",
+                (campaign_id,),
+            )
+            cursor.execute("DELETE FROM platform_posts WHERE campaign_id = ?", (campaign_id,))
+            conn.commit()

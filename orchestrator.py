@@ -77,6 +77,8 @@ class CampaignOrchestrator:
         Execute full end-to-end 2-week campaign lifecycle with human gating and memory feedback.
         """
         campaign_id = campaign_id or f"camp_{uuid.uuid4().hex[:8]}"
+        # Ensure fresh, clean database state for this campaign
+        self.db.clear_campaign(campaign_id)
 
         self.console.print()
         self.console.rule(f"[bold cyan]LAUNCHING MULTI-AGENT CAMPAIGN: {campaign_id}[/bold cyan]")
@@ -368,27 +370,23 @@ class CampaignOrchestrator:
 
         w1_imp = w1_agg.get("total_impressions", 0)
         w2_imp = w2_agg.get("total_impressions", 0)
-        imp_delta = (
-            f"+{round((w2_imp - w1_imp) / w1_imp * 100, 1)}%" if w1_imp > 0 else "N/A"
-        )
+        imp_val = round((w2_imp - w1_imp) / w1_imp * 100, 1) if w1_imp > 0 else 0.0
+        imp_delta = f"{'+' if imp_val > 0 else ''}{imp_val:.1f}%"
 
         w1_eng = w1_agg.get("total_engagements", 0)
         w2_eng = w2_agg.get("total_engagements", 0)
-        eng_delta = (
-            f"+{round((w2_eng - w1_eng) / w1_eng * 100, 1)}%" if w1_eng > 0 else "N/A"
-        )
+        eng_val = round((w2_eng - w1_eng) / w1_eng * 100, 1) if w1_eng > 0 else 0.0
+        eng_delta = f"{'+' if eng_val > 0 else ''}{eng_val:.1f}%"
 
         w1_rate = w1_agg.get("avg_engagement_rate", 0.0)
         w2_rate = w2_agg.get("avg_engagement_rate", 0.0)
-        rate_delta = (
-            f"+{round((w2_rate - w1_rate) / w1_rate * 100, 1)}%" if w1_rate > 0 else "N/A"
-        )
+        rate_val = round((w2_rate - w1_rate) / w1_rate * 100, 1) if w1_rate > 0 else 0.0
+        rate_delta = f"{'+' if rate_val > 0 else ''}{rate_val:.1f}%"
 
         w1_pos = w1_agg.get("sentiment_summary", {}).get("positive_ratio", 0.0)
         w2_pos = w2_agg.get("sentiment_summary", {}).get("positive_ratio", 0.0)
-        pos_delta = (
-            f"+{round((w2_pos - w1_pos) * 100, 1)}% pts"
-        )
+        pos_val = round((w2_pos - w1_pos) * 100, 1)
+        pos_delta = f"{'+' if pos_val > 0 else ''}{pos_val:.1f}% pts"
 
         w1_esc = w1_result.get("moderation", {}).get("escalated_to_human", 0)
         w2_esc = w2_result.get("moderation", {}).get("escalated_to_human", 0)

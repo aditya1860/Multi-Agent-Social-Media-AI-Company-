@@ -283,9 +283,11 @@ class MessageBus:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM message_traces
-                ORDER BY id ASC
-                LIMIT ?
+                SELECT * FROM (
+                    SELECT * FROM message_traces
+                    ORDER BY id DESC
+                    LIMIT ?
+                ) ORDER BY id ASC
                 """,
                 (limit,),
             )

@@ -652,13 +652,19 @@ class LLMClient:
                 logger.warning(f"Offline stub schema mismatch: {e}")
 
         json_str = json.dumps(stub_data)
+        # Content-proportional token estimation in offline mode (~1.33 tokens per word)
+        prompt_words = sum(len(str(m.get("content", "")).split()) for m in (messages or []))
+        approx_prompt_tokens = max(40, int(prompt_words * 1.33))
+        eval_words = len(json_str.split())
+        approx_eval_tokens = max(45, int(eval_words * 1.33))
+
         return LLMResponse(
             content=json_str,
             parsed_json=stub_data,
             model=model_name,
-            prompt_tokens=45,
-            eval_tokens=90,
-            total_tokens=135,
+            prompt_tokens=approx_prompt_tokens,
+            eval_tokens=approx_eval_tokens,
+            total_tokens=approx_prompt_tokens + approx_eval_tokens,
             offline_generated=True,
             validation_attempts=1,
             fallback_used=False,
