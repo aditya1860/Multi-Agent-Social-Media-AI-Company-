@@ -12,8 +12,10 @@ Provides REST endpoints for:
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-from fastapi import FastAPI, HTTPException, Query, Response
-from fastapi.responses import RedirectResponse
+from pathlib import Path
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 
 from mock_platform.channels import CHANNELS
@@ -34,14 +36,38 @@ app = FastAPI(
     version="1.0.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 db = PlatformDatabase()
 engine = EngagementEngine(seed=42)
 
 
 @app.get("/", include_in_schema=False)
-def root():
-    """Redirect root path directly to interactive Swagger API documentation."""
+def root(request: Request):
+    """
+    Serves interactive HTML dashboard for browsers,
+    or redirects to /docs for API clients.
+    """
+    accept = request.headers.get("accept", "")
+    html_path = Path(__file__).resolve().parent.parent / "docs" / "index.html"
+    if "text/html" in accept and html_path.exists():
+        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     return RedirectResponse(url="/docs")
+
+
+@app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
+def dashboard():
+    """Explicit endpoint to view the interactive web dashboard."""
+    html_path = Path(__file__).resolve().parent.parent / "docs" / "index.html"
+    if html_path.exists():
+        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Dashboard file docs/index.html not found.</h1>", status_code=404)
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -232,3 +258,37 @@ def get_weekly_analytics(campaign_id: str, week: int) -> WeeklyAnalyticsResponse
         posts=posts,
         raw_aggregated_metrics=raw_agg,
     )
+
+
+@app.post("/api/campaign/demo", tags=["Campaign"])
+def run_campaign_demo(brief: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Trigger full multi-agent 2-week campaign lifecycle.
+    Executes Chief of Staff, Strategy, Content Writer, Creative, Compliance,
+    Platform Simulation, Community Management, Analytics, and Memory Adaptation.
+    """
+    from orchestrator import CampaignOrchestrator
+
+    orchestrator = CampaignOrchestrator(seed=42)
+    client_brief = brief or (
+        "Launch campaign for EcoGlow: an ultra-compact modular solar lantern engineered with "
+        "recycled ocean plastic and solid-state solar cells for backpackers, vanlifers, and eco-conscious outdoor enthusiasts. "
+        "Objectives: 2-week social awareness campaign to establish authentic community trust, educate on durability benchmarks, and drive early "
+        "waitlist pre-orders."
+    )
+    result = orchestrator.run_campaign(
+        raw_brief=client_brief,
+        campaign_id="camp_ecoglow_demo",
+        auto_approve=True,
+    )
+    return result
+
+
+@app.get("/api/traces", tags=["Telemetry"])
+def get_message_traces(limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieve the most recent inter-agent pub/sub message bus traces."""
+    from bus.message_bus import MessageBus
+
+    bus = MessageBus()
+    return bus.get_traces(limit=limit)
+

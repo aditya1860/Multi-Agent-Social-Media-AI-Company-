@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: multi-agent-social-media-ai-company
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn mock_platform.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SOCIAL_AI_OFFLINE
+        value: "1"
+      - key: PYTHONUNBUFFERED
+        value: "1"

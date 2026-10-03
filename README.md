@@ -5,6 +5,15 @@
 ![Inference](https://img.shields.io/badge/inference-100%25%20local%20(Ollama)-orange)
 ![License](https://img.shields.io/badge/scope-Prodigal%20AI%20Task%201-lightgrey)
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-059669?style=for-the-badge&logo=github)](https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/aditya1860/Multi-Agent-Social-Media-AI-Company-)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+
+> 🚀 **Live Interactive Web Dashboard:** [https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/](https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/)  
+> 📄 **Technical Report (PDF):** [docs/TECHNICAL_REPORT.pdf](docs/TECHNICAL_REPORT.pdf)  
+> ⚡ **1-Click Backend Cloud Deployment:** Click the **Deploy to Render** button above to launch the live containerized FastAPI backend.
+
 An autonomous, local-first enterprise marketing agency built on a defensible multi-agent architecture. Powered entirely by local LLMs via Ollama, the system decomposes unstructured human marketing briefs, coordinates **8 specialized autonomous agents**, enforces **dual-layer deterministic safety guardrails**, publishes to an in-house **Mock Social Media Platform**, and executes an **empirical weekly improvement loop** using persistent relational memory.
 
 No external hosted API is used at any point in the pipeline — no OpenAI, Anthropic, Gemini, or Groq calls. Everything runs on an 8GB-VRAM-class consumer GPU.
@@ -96,6 +105,24 @@ python cli.py start-platform --port 8000
 # Re-run all 5 seeded trials and regenerate docs/run_artifacts/summary_metrics.json
 python scripts/run_experiments.py
 ```
+
+### Web Dashboard & Cloud Deployment Options
+
+- **Live Interactive Dashboard (GitHub Pages):**
+  Open [https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/](https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/) to run the campaign simulation directly in your browser, view the Week 1 vs Week 2 comparison analytics, inspect the 14 published posts across all 3 channels, examine threaded comments with safety escalations, and browse the message bus audit trail.
+- **Run Web Dashboard & REST API Locally:**
+  ```powershell
+  python cli.py start-platform --port 8000
+  # Open http://localhost:8000 for the rich web UI
+  # Open http://localhost:8000/docs for interactive Swagger REST API docs
+  ```
+- **1-Click Cloud Deployment (Render):**
+  Click the **Deploy to Render** button or link your GitHub repo on [Render](https://render.com). Render will detect `render.yaml` and provision the live containerized service automatically.
+- **Docker Container Deployment:**
+  ```powershell
+  docker build -t social-media-ai-company .
+  docker run -p 8000:8000 social-media-ai-company
+  ```
 
 ---
 

@@ -40,7 +40,14 @@ class ContentDraft(BaseModel):
             data["hashtags"] = ["#SolarTech", "#EcoGlow", "#OutdoorGear"]
 
         # Normalize post_copy
-        post_copy = str(data.get("post_copy") or "")
+        post_copy = str(
+            data.get("post_copy")
+            or data.get("copy")
+            or data.get("content")
+            or data.get("text")
+            or data.get("body")
+            or ""
+        )
         data["post_copy"] = post_copy
 
         if not data.get("hook"):
