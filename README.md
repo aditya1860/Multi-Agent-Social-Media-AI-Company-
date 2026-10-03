@@ -5,12 +5,12 @@
 ![Inference](https://img.shields.io/badge/inference-100%25%20local%20(Ollama)-orange)
 ![License](https://img.shields.io/badge/scope-Prodigal%20AI%20Task%201-lightgrey)
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-059669?style=for-the-badge&logo=github)]https://multi-agent-social-media-ai-company.onrender.com/
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-059669?style=for-the-badge&logo=github)]
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/aditya1860/Multi-Agent-Social-Media-AI-Company-)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 
-> 🚀 **Live Interactive Web Dashboard:** [https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/](https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/)  
+> 🚀 **Live Interactive Web Dashboard:** [https://aditya1860.github.io/Multi-Agent-Social-Media-AI-Company-/]https://multi-agent-social-media-ai-company.onrender.com/  
 > 📄 **Technical Report (PDF):** [docs/TECHNICAL_REPORT.pdf](docs/TECHNICAL_REPORT.pdf)  
 > ⚡ **1-Click Backend Cloud Deployment:** Click the **Deploy to Render** button above to launch the live containerized FastAPI backend.
 
